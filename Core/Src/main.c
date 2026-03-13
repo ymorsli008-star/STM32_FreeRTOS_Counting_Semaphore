@@ -121,6 +121,8 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+
   CountingSemaphore = xSemaphoreCreateCounting(3, 0);
   if(CountingSemaphore == NULL)
   {
@@ -249,14 +251,23 @@ void HPT_Task(void *pvParameters)
 {
   char sresource[3];
 
+  int semcount = 0;
+  char ssemcount[2];
+
   // Give 3 semaphore at the beginning
   xSemaphoreGive(CountingSemaphore);
   xSemaphoreGive(CountingSemaphore);
   xSemaphoreGive(CountingSemaphore);
+
   while(1)
   {
     char str[155];
     strcpy(str, "Entered HPT Task\n About to Acquire the Semaphore\n\n");
+    semcount = uxSemaphoreGetCount(CountingSemaphore);
+    itoa(semcount, ssemcount, 10);
+    strcpy(str, "Tokens available here are: ");
+    strcpy(str, ssemcount);
+    strcpy(str, "\n\n");
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     xSemaphoreTake(CountingSemaphore, portMAX_DELAY);
@@ -268,22 +279,29 @@ void HPT_Task(void *pvParameters)
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     indx++;
-    if(indx > 2 )
+    if(indx > 2)
     {
       indx = 0;
     }
-    vTaskDelay(3000);
+    // vTaskDelay(3000);
+    vTaskDelete(NULL); // This deletes the task
   }
 }
 
 void MPT_Task(void *pvParameters)
 {
   char sresource[3];
-
+  int semcount = 0;
+  char ssemcount[2];
   while(1)
   {
     char str[155];
     strcpy(str, "Entered MPT Task\n About to Acquire the Semaphore\n\n");
+    semcount = uxSemaphoreGetCount(CountingSemaphore);
+    itoa(semcount, ssemcount, 10);
+    strcpy(str, "Tokens available here are: ");
+    strcpy(str, ssemcount);
+    strcpy(str, "\n\n");
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     xSemaphoreTake(CountingSemaphore, portMAX_DELAY);
@@ -295,22 +313,29 @@ void MPT_Task(void *pvParameters)
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     indx++;
-    if(indx > 2 )
+    if(indx > 2)
     {
       indx = 0;
     }
-    vTaskDelay(2000);
+//    vTaskDelay(2000);
+    vTaskDelete(NULL); // This deletes the task
   }
 }
 
 void LPT_Task(void *pvParameters)
 {
   char sresource[3];
-
+  int semcount = 0;
+  char ssemcount[2];
   while(1)
   {
     char str[155];
     strcpy(str, "Entered LPT Task\n About to Acquire the Semaphore\n\n");
+    semcount = uxSemaphoreGetCount(CountingSemaphore);
+    itoa(semcount, ssemcount, 10);
+    strcpy(str, "Tokens available here are: ");
+    strcpy(str, ssemcount);
+    strcpy(str, "\n\n");
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     xSemaphoreTake(CountingSemaphore, portMAX_DELAY);
@@ -322,22 +347,29 @@ void LPT_Task(void *pvParameters)
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     indx++;
-    if(indx > 2 )
+    if(indx > 2)
     {
       indx = 0;
     }
-    vTaskDelay(1000);
+//    vTaskDelay(1000);
+    vTaskDelete(NULL); // This deletes the task
   }
 }
 
 void VLPT_Task(void *pvParameters)
 {
   char sresource[3];
-
+  int semcount = 0;
+  char ssemcount[2];
   while(1)
   {
     char str[155];
     strcpy(str, "Entered VLPT Task\n About to Acquire the Semaphore\n\n");
+    semcount = uxSemaphoreGetCount(CountingSemaphore);
+    itoa(semcount, ssemcount, 10);
+    strcpy(str, "Tokens available here are: ");
+    strcpy(str, ssemcount);
+    strcpy(str, "\n\n");
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     xSemaphoreTake(CountingSemaphore, portMAX_DELAY);
@@ -349,13 +381,33 @@ void VLPT_Task(void *pvParameters)
     HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
 
     indx++;
-    if(indx > 2 )
+    if(indx > 2)
     {
       indx = 0;
     }
-    vTaskDelay(2000);
+    vTaskDelay(500);
+    // vTaskDelete(NULL); // This deletes the task
   }
 }
+
+// ISR callback function
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+  if(rx_data == 'r')
+  {
+    // release semaphore
+    BaseType_t xHigherPriorityTaskToken = pdFALSE;
+
+    // Release three semaphore with ISR
+    xSemaphoreGiveFromISR(CountingSemaphore, &xHigherPriorityTaskToken); // ISR Safe Verison
+    xSemaphoreGiveFromISR(CountingSemaphore, &xHigherPriorityTaskToken);
+    xSemaphoreGiveFromISR(CountingSemaphore, &xHigherPriorityTaskToken);
+
+    portEND_SWITCHING_ISR(xHigherPriorityTaskToken);
+  }
+}
+
 /* USER CODE END 4 */
 
 /**
