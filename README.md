@@ -3,6 +3,8 @@
 ## Overview
 This project demonstrates the usage of counting semaphores for resource management in an STM32 microcontroller using FreeRTOS. Counting semaphores are used to manage a pool of resources where multiple tasks can access them simultaneously up to a maximum count.
 
+> This project uses **native FreeRTOS APIs** directly, not the CMSIS-RTOS wrapper.
+
 ## Project Description
 The application creates four tasks with different priorities:
 - HPT Task (Highest Priority: 3)
@@ -115,9 +117,24 @@ In this project, semaphore tokens are only released from the UART ISR, not from 
 > **Note:** Semaphores can be released from anywhere - tasks, interrupts, timers, etc. However, releasing from an ISR is more complex and requires special handling. This project intentionally uses the more challenging ISR-based release to demonstrate proper interrupt-safe semaphore operations.
 
 ### Comparison: Task vs ISR Release
-|Aspect | Task Release | ISR Release (This Project) |
-|-------|--------------|----------------------------|
+| Aspect | Task Release | ISR Release (This Project) |
+|--------|--------------|----------------------------|
 | Function | `xSemaphoreGive()` | `xSemaphoreGiveFromISR()` |
 | Context switching | Automatic | Manual with `portYIELD_FROM_ISR()` |
 | Complexity | Simple | More complex |
 | Use case | Normal task synchronization | Interrupt-driven events |
+
+## Binary vs Counting Semaphore Comparison
+
+| Feature | Binary Semaphore | Counting Semaphore |
+|---------|------------------|-------------------|
+| Maximum value | 1 | Configurable (3 in this project) |
+| Simultaneous holders | 1 task | Multiple tasks (up to max) |
+| Use case | Mutual exclusion | Resource counting/pooling |
+| Task blocking | Only 1 task can wait | Multiple tasks can wait |
+| Example | Protect single resource | Protect 3 identical resources |
+
+## Contact
+**Rubin Khadka Chhetri**  
+📧 rubin.khadka84@gmail.com <br>
+🐙 GitHub: https://github.com/rubin-khadka
